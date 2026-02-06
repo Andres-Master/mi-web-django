@@ -5,7 +5,12 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 
 # Detectar si estamos en desarrollo o producción
-USE_SUPABASE = os.environ.get('USE_SUPABASE', '').lower() == 'true' or '/home/' in str(settings.BASE_DIR)
+# Usar Supabase si estamos en producción (Render o PythonAnywhere)
+USE_SUPABASE = (
+    os.environ.get('USE_SUPABASE', '').lower() == 'true' or
+    '/opt/render/' in str(settings.BASE_DIR) or  # Render
+    '/home/' in str(settings.BASE_DIR)  # PythonAnywhere
+)
 
 # Inicializar cliente de Supabase
 SUPABASE_URL = "https://db.nmggrmtioxrmwcxznjnf.supabase.co"
