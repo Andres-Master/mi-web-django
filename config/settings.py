@@ -77,23 +77,53 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if DATABASE_URL:
-    # Usar PostgreSQL en producción (PythonAnywhere)
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600
-        )
-    }
-else:
-    # Usar SQLite en desarrollo local
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+import socket
+import dj_database_url
+
+# Detectar si estamos en PythonAnywhere
+IS_PYTHONANYWHERE = 'pythonanywhere' in socket.getfqdn()
+
+# Obtener DATABASE_URL de variables de entorno
+DATABASE_URL = os.environ.get('DATABASE_URL', None)
+
+if IS_PYTHONANYWHERE:
+    # En PythonAnywhere, intentar usar PostgreSQL
+    if DATABASE_URL:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600
+            )
         }
-    }
+    else:
+        # Si no está DATABASE_URL, mostrar error en logs
+        print("WARNING: DATABASE_URL not found in environment variables!")
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': 'postgres',
+                'USER': 'postgres',
+                'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+                'HOST': os.environ.get('DB_HOST', ''),
+                'PORT': '5432',
+            }
+        }
+else:
+    # En desarrollo local, usar SQLite
+    if DATABASE_URL:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600
+            )
+        }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 # Password validation
