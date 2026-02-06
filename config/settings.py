@@ -83,9 +83,6 @@ DATABASES = {
     }
 }
 
-# Usar Supabase como backend de sesiones
-SESSION_ENGINE = 'home.supabase_session.SupabaseSessionBackend'
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
