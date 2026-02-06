@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: mi-web-django
+    runtime: python
+    pythonVersion: 3.13
+    buildCommand: ./build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: PORT
+        value: "8000"
