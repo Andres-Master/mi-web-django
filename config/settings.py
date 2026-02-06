@@ -27,7 +27,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL', None)
 SECRET_KEY = 'django-insecure-$=zotf1t=na9_r4o0#ka($o*pt*$5b##uf*qspfn%2e7y%(#b='
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
