@@ -4,8 +4,8 @@ from django.contrib.auth.hashers import make_password, check_password
 from cryptography.fernet import Fernet
 
 # Inicializar cliente de Supabase (único backend)
-SUPABASE_URL = "https://db.nmggrmtioxrmwcxznjnf.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiLm5tZ2dybXRpb3hyY213Y3puam5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgyNTA4MzYsImV4cCI6MjA1MzgyNDgzNn0.YZhfXnAXE3bljGrL5sQ4zZqMVJn0YL8-IFaFDOJ5MJ0"
+SUPABASE_URL = "https://nmggrmtioxrmwcxznjnf.supabase.co"
+SUPABASE_KEY = "sb_publishable_7g4pxCNU3TP9dNUqj1TRzA_YsrnPRgO"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
