@@ -74,11 +74,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-# Nota: La aplicación usa Supabase REST API, no una conexión directa a la BD
-# SQLite se usa solo para la sesión de Django
-
+# Database - Solo para Django sessions (no para datos de la app)
+# La aplicación usa Supabase REST API para todos los datos
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
