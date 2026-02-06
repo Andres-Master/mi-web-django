@@ -80,8 +80,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 import socket
 import dj_database_url
 
-# Detectar si estamos en PythonAnywhere
-IS_PYTHONANYWHERE = 'pythonanywhere' in socket.getfqdn()
+# Detectar si estamos en PythonAnywhere (por la ruta /home/usuario)
+IS_PYTHONANYWHERE = '/home/' in BASE_DIR.as_posix()
 
 # Obtener DATABASE_URL de variables de entorno
 DATABASE_URL = os.environ.get('DATABASE_URL', None)
