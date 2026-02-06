@@ -1,10 +1,7 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.hashers import make_password
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.db.models import Q
-from .models import Usuario, Conversacion, Mensaje
-from cryptography.fernet import Fernet
+from .supabase_client import UsuarioService, ConversacionService, MensajeService
 import json
 
 # ==================== AUTENTICACIÓN ====================
@@ -17,19 +14,20 @@ def registro(request):
         email = request.POST.get('email')
         
         # Validar que el usuario no exista
-        if Usuario.objects.filter(username=username).exists():
+        if UsuarioService.usuario_existe(username):
             return render(request, 'registro.html', {'error': 'El usuario ya existe'})
         
         # Crear usuario
-        usuario = Usuario(username=username, email=email)
-        usuario.set_password(contraseña)
-        usuario.save()
-        
-        # Guardar en sesión
-        request.session['usuario_id'] = usuario.id_usuario
-        request.session['username'] = usuario.username
-        
-        return redirect('conversaciones')
+        try:
+            usuario = UsuarioService.crear_usuario(username, email, contraseña)
+            
+            # Guardar en sesión
+            request.session['usuario_id'] = usuario['id_usuario']
+            request.session['username'] = usuario['username']
+            
+            return redirect('conversaciones')
+        except Exception as e:
+            return render(request, 'registro.html', {'error': f'Error al registrar: {str(e)}'})
     
     return render(request, 'registro.html')
 
@@ -41,19 +39,21 @@ def login(request):
         contraseña = request.POST.get('contraseña')
         
         try:
-            usuario = Usuario.objects.get(username=username)
-            
-            if usuario.check_password(contraseña):
+            # Verificar contraseña
+            if UsuarioService.verificar_contraseña(username, contraseña):
+                usuario = UsuarioService.obtener_usuario(username)
+                
                 # Login exitoso
-                request.session['usuario_id'] = usuario.id_usuario
-                request.session['username'] = usuario.username
+                request.session['usuario_id'] = usuario['id_usuario']
+                request.session['username'] = usuario['username']
                 return redirect('conversaciones')
             else:
                 return render(request, 'login.html', {'error': 'Contraseña incorrecta'})
-        except Usuario.DoesNotExist:
+        except Exception as e:
             return render(request, 'login.html', {'error': 'Usuario no encontrado'})
     
     return render(request, 'login.html')
+
 
 
 def logout(request):
@@ -75,25 +75,22 @@ def conversaciones(request):
         return redirect('login')
     
     usuario_id = request.session.get('usuario_id')
-    usuario = Usuario.objects.get(id_usuario=usuario_id)
+    username = request.session.get('username')
     
-    # Conversaciones públicas
-    conversaciones_publicas = Conversacion.objects.filter(tipo='publico')
-    
-    # Conversaciones privadas del usuario
-    conversaciones_privadas = Conversacion.objects.filter(
-        tipo='privado'
-    ).filter(
-        Q(id_usuario_1=usuario) | Q(id_usuario_2=usuario)
-    )
-    
-    contexto = {
-        'usuario': usuario,
-        'conversaciones_publicas': conversaciones_publicas,
-        'conversaciones_privadas': conversaciones_privadas,
-    }
-    
-    return render(request, 'conversaciones.html', contexto)
+    try:
+        # Obtener conversaciones
+        conversaciones_publicas = ConversacionService.obtener_conversaciones_publicas()
+        conversaciones_usuario = ConversacionService.obtener_conversaciones_usuario(usuario_id)
+        
+        contexto = {
+            'username': username,
+            'conversaciones_publicas': conversaciones_publicas,
+            'conversaciones_privadas': conversaciones_usuario['privadas'],
+        }
+        
+        return render(request, 'conversaciones.html', contexto)
+    except Exception as e:
+        return render(request, 'conversaciones.html', {'error': f'Error: {str(e)}'})
 
 
 def crear_conversacion_publica(request):
@@ -105,15 +102,15 @@ def crear_conversacion_publica(request):
         nombre = request.POST.get('nombre')
         
         if nombre:
-            # Generar token
-            conversacion = Conversacion(
-                tipo='publico',
-                nombre=nombre
-            )
-            conversacion.generar_token()
-            conversacion.save()
-            
-            return redirect('chat', id_conversacion=conversacion.id_conversacion)
+            try:
+                conversacion = ConversacionService.crear_conversacion(
+                    tipo='publico',
+                    nombre=nombre
+                )
+                
+                return redirect('chat', id_conversacion=conversacion['id_conversacion'])
+            except Exception as e:
+                return render(request, 'crear_conversacion.html', {'error': str(e)})
     
     return render(request, 'crear_conversacion.html')
 
@@ -125,41 +122,41 @@ def crear_conversacion_privada(request):
     
     if request.method == 'POST':
         username_destino = request.POST.get('username')
-        usuario_actual = Usuario.objects.get(id_usuario=request.session.get('usuario_id'))
+        usuario_actual_id = request.session.get('usuario_id')
         
         try:
-            usuario_destino = Usuario.objects.get(username=username_destino)
+            usuario_destino = UsuarioService.obtener_usuario(username_destino)
+            
+            if not usuario_destino:
+                return render(request, 'crear_privado.html', 
+                            {'error': 'Usuario no encontrado'})
             
             # Verificar que no sea a sí mismo
-            if usuario_actual.id_usuario == usuario_destino.id_usuario:
+            if usuario_actual_id == usuario_destino['id_usuario']:
                 return render(request, 'crear_privado.html', 
                             {'error': 'No puedes crear una conversación contigo mismo'})
             
             # Verificar si ya existe
-            existente = Conversacion.objects.filter(
-                tipo='privado'
-            ).filter(
-                Q(id_usuario_1=usuario_actual, id_usuario_2=usuario_destino) |
-                Q(id_usuario_1=usuario_destino, id_usuario_2=usuario_actual)
-            ).first()
-            
-            if existente:
-                return redirect('chat', id_conversacion=existente.id_conversacion)
+            if ConversacionService.conversacion_privada_existe(usuario_actual_id, usuario_destino['id_usuario']):
+                # Buscar la conversación existente
+                conversaciones_usuario = ConversacionService.obtener_conversaciones_usuario(usuario_actual_id)
+                for conv in conversaciones_usuario['privadas']:
+                    if (conv['id_usuario_1'] == usuario_destino['id_usuario'] or 
+                        conv['id_usuario_2'] == usuario_destino['id_usuario']):
+                        return redirect('chat', id_conversacion=conv['id_conversacion'])
             
             # Crear nueva conversación privada
-            conversacion = Conversacion(
+            conversacion = ConversacionService.crear_conversacion(
                 tipo='privado',
-                id_usuario_1=usuario_actual,
-                id_usuario_2=usuario_destino
+                id_usuario_1=usuario_actual_id,
+                id_usuario_2=usuario_destino['id_usuario']
             )
-            conversacion.generar_token()
-            conversacion.save()
             
-            return redirect('chat', id_conversacion=conversacion.id_conversacion)
+            return redirect('chat', id_conversacion=conversacion['id_conversacion'])
         
-        except Usuario.DoesNotExist:
+        except Exception as e:
             return render(request, 'crear_privado.html', 
-                        {'error': 'Usuario no encontrado'})
+                        {'error': f'Error: {str(e)}'})
     
     return render(request, 'crear_privado.html')
 
@@ -171,53 +168,65 @@ def chat(request, id_conversacion):
     if not es_autenticado(request):
         return redirect('login')
     
-    usuario_actual = Usuario.objects.get(id_usuario=request.session.get('usuario_id'))
-    conversacion = get_object_or_404(Conversacion, id_conversacion=id_conversacion)
+    usuario_actual_id = request.session.get('usuario_id')
+    username = request.session.get('username')
     
-    # Obtener mensajes y descifrarlos
-    mensajes = Mensaje.objects.filter(id_conversacion=conversacion).select_related('id_usuario')
-    
-    mensajes_descifrados = []
-    for msg in mensajes:
-        try:
-            texto_descifrado = msg.descifrar_mensaje(conversacion.token)
-            mensajes_descifrados.append({
-                'usuario': msg.id_usuario.username,
-                'contenido': texto_descifrado,
-                'fecha': msg.fecha_envio,
-                'es_tuyo': msg.id_usuario.id_usuario == usuario_actual.id_usuario
-            })
-        except:
-            # Si falla el descifrado
-            mensajes_descifrados.append({
-                'usuario': msg.id_usuario.username,
-                'contenido': '[Mensaje cifrado]',
-                'fecha': msg.fecha_envio,
-                'es_tuyo': msg.id_usuario.id_usuario == usuario_actual.id_usuario
-            })
-    
-    if request.method == 'POST':
-        contenido = request.POST.get('mensaje')
+    try:
+        conversacion = ConversacionService.obtener_conversacion(id_conversacion)
         
-        if contenido:
-            # Crear mensaje cifrado
-            mensaje = Mensaje(
-                id_conversacion=conversacion,
-                id_usuario=usuario_actual,
-                mensaje=''
-            )
-            mensaje.cifrar_mensaje(contenido, conversacion.token)
-            mensaje.save()
+        if not conversacion:
+            return redirect('conversaciones')
+        
+        # Obtener mensajes y descifrarlos
+        mensajes_raw = MensajeService.obtener_mensajes(id_conversacion)
+        
+        mensajes_descifrados = []
+        for msg in mensajes_raw:
+            try:
+                texto_descifrado = MensajeService.descifrar_mensaje(msg['mensaje'], conversacion['token'])
+                mensajes_descifrados.append({
+                    'id_usuario': msg['id_usuario'],
+                    'usuario': msg.get('usuario_username', 'Usuario'),  # Si la join funciona
+                    'contenido': texto_descifrado,
+                    'fecha': msg['fecha_envio'],
+                    'es_tuyo': msg['id_usuario'] == usuario_actual_id
+                })
+            except:
+                # Si falla el descifrado
+                mensajes_descifrados.append({
+                    'id_usuario': msg['id_usuario'],
+                    'usuario': msg.get('usuario_username', 'Usuario'),
+                    'contenido': '[Mensaje cifrado]',
+                    'fecha': msg['fecha_envio'],
+                    'es_tuyo': msg['id_usuario'] == usuario_actual_id
+                })
+        
+        if request.method == 'POST':
+            contenido = request.POST.get('mensaje')
             
-            return redirect('chat', id_conversacion=id_conversacion)
-    
-    contexto = {
-        'usuario': usuario_actual,
-        'conversacion': conversacion,
-        'mensajes': mensajes_descifrados,
-    }
-    
-    return render(request, 'chat.html', contexto)
+            if contenido:
+                try:
+                    # Crear mensaje cifrado
+                    MensajeService.crear_mensaje(id_conversacion, usuario_actual_id, contenido)
+                    return redirect('chat', id_conversacion=id_conversacion)
+                except Exception as e:
+                    contexto = {
+                        'username': username,
+                        'conversacion': conversacion,
+                        'mensajes': mensajes_descifrados,
+                        'error': f'Error al enviar: {str(e)}'
+                    }
+                    return render(request, 'chat.html', contexto)
+        
+        contexto = {
+            'username': username,
+            'conversacion': conversacion,
+            'mensajes': mensajes_descifrados,
+        }
+        
+        return render(request, 'chat.html', contexto)
+    except Exception as e:
+        return render(request, 'chat.html', {'error': f'Error: {str(e)}'})
 
 
 def index(request):
@@ -225,3 +234,4 @@ def index(request):
     if es_autenticado(request):
         return redirect('conversaciones')
     return redirect('login')
+
