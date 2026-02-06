@@ -5,7 +5,7 @@ from cryptography.fernet import Fernet
 
 # Inicializar cliente de Supabase (único backend)
 SUPABASE_URL = "https://nmggrmtioxrmwcxznjnf.supabase.co"
-SUPABASE_KEY = "sb_publishable_7g4pxCNU3TP9dNUqj1TRzA_YsrnPRgO"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZ2dybXRpb3hybXdjeHpuam5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzOTYwNzQsImV4cCI6MjA4NTk3MjA3NH0.K150PXNMeaMgc5PqQLZgeJnRBAo6umUNiJj1XHfMVT0"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
