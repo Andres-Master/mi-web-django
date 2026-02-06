@@ -8,9 +8,15 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 """
 
 import os
-
 from django.core.wsgi import get_wsgi_application
+from django.core.management import call_command
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
+# Ejecutar migraciones automáticamente al iniciar
+try:
+    call_command('migrate', '--no-input', verbosity=0)
+except Exception as e:
+    print(f"Error ejecutando migraciones: {e}")
 
 application = get_wsgi_application()
