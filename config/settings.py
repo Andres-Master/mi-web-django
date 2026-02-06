@@ -87,7 +87,7 @@ IS_PYTHONANYWHERE = 'pythonanywhere' in socket.getfqdn()
 DATABASE_URL = os.environ.get('DATABASE_URL', None)
 
 if IS_PYTHONANYWHERE:
-    # En PythonAnywhere, intentar usar PostgreSQL
+    # En PythonAnywhere, usar PostgreSQL/Supabase
     if DATABASE_URL:
         DATABASES = {
             'default': dj_database_url.config(
@@ -96,15 +96,14 @@ if IS_PYTHONANYWHERE:
             )
         }
     else:
-        # Si no está DATABASE_URL, mostrar error en logs
-        print("WARNING: DATABASE_URL not found in environment variables!")
+        # Hardcodear credenciales de Supabase como fallback
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql',
                 'NAME': 'postgres',
                 'USER': 'postgres',
-                'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-                'HOST': os.environ.get('DB_HOST', ''),
+                'PASSWORD': 'ECPerso2407',
+                'HOST': 'db.nmggrmtioxrmwcxznjnf.supabase.co',
                 'PORT': '5432',
             }
         }
