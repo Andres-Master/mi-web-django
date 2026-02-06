@@ -144,3 +144,66 @@ class MensajeService:
             return mensaje_cifrado
 
 
+class DjangoSessionService:
+    """Servicio para manejar sesiones de Django a través de Supabase API"""
+    
+    @staticmethod
+    def crear_sesion(session_key: str, session_data: str, expire_date: str):
+        """Crear una sesión en Supabase"""
+        try:
+            response = supabase.table("django_session").insert({
+                "session_key": session_key,
+                "session_data": session_data,
+                "expire_date": expire_date
+            }).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"Error al crear sesión: {e}")
+            return None
+    
+    @staticmethod
+    def obtener_sesion(session_key: str):
+        """Obtener una sesión desde Supabase"""
+        try:
+            response = supabase.table("django_session").select("*").eq("session_key", session_key).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"Error al obtener sesión: {e}")
+            return None
+    
+    @staticmethod
+    def actualizar_sesion(session_key: str, session_data: str, expire_date: str):
+        """Actualizar una sesión en Supabase"""
+        try:
+            response = supabase.table("django_session").update({
+                "session_data": session_data,
+                "expire_date": expire_date
+            }).eq("session_key", session_key).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"Error al actualizar sesión: {e}")
+            return None
+    
+    @staticmethod
+    def eliminar_sesion(session_key: str):
+        """Eliminar una sesión desde Supabase"""
+        try:
+            supabase.table("django_session").delete().eq("session_key", session_key).execute()
+            return True
+        except Exception as e:
+            print(f"Error al eliminar sesión: {e}")
+            return False
+    
+    @staticmethod
+    def limpiar_sesiones_expiradas():
+        """Eliminar todas las sesiones expiradas"""
+        try:
+            from datetime import datetime
+            ahora = datetime.utcnow().isoformat()
+            supabase.table("django_session").delete().lt("expire_date", ahora).execute()
+            return True
+        except Exception as e:
+            print(f"Error al limpiar sesiones: {e}")
+            return False
+
+
