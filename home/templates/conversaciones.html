@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversaciones</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .header a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+        
+        .header a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .user-info {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .botones-crear {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+        
+        .seccion {
+            margin-bottom: 40px;
+        }
+        
+        .seccion h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            padding-left: 5px;
+        }
+        
+        .conversaciones-lista {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .conversacion-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .conversacion-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+            background: #f9f9f9;
+        }
+        
+        .conversacion-nombre {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .conversacion-tipo {
+            display: inline-block;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .tipo-publico {
+            background: #e0f2ff;
+            color: #0066cc;
+        }
+        
+        .tipo-privado {
+            background: #fff4e0;
+            color: #cc6600;
+        }
+        
+        .conversacion-usuario {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        
+        .vacio {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 Chat Seguro</h1>
+        <a href="{% url 'logout' %}">Cerrar Sesión</a>
+    </div>
+    
+    <div class="container">
+        <!-- Info de usuario -->
+        <div class="user-info">
+            <div class="user-name">👤 {{ usuario.username }}</div>
+            <div class="botones-crear">
+                <a href="{% url 'crear_publica' %}" class="btn btn-success">+ Crear Pública</a>
+                <a href="{% url 'crear_privada' %}" class="btn btn-primary">+ Privado</a>
+            </div>
+        </div>
+        
+        <!-- Conversaciones Públicas -->
+        <div class="seccion">
+            <h2>🌍 Conversaciones Públicas</h2>
+            {% if conversaciones_publicas %}
+                <div class="conversaciones-lista">
+                    {% for conv in conversaciones_publicas %}
+                        <a href="{% url 'chat' conv.id_conversacion %}" class="conversacion-card">
+                            <div class="conversacion-nombre">{{ conv.nombre }}</div>
+                            <span class="conversacion-tipo tipo-publico">Público</span>
+                            <div class="conversacion-usuario">
+                                📊 {{ conv.mensajes.count }} mensajes
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="vacio">No hay conversaciones públicas aún</div>
+            {% endif %}
+        </div>
+        
+        <!-- Conversaciones Privadas -->
+        <div class="seccion">
+            <h2>🔒 Conversaciones Privadas</h2>
+            {% if conversaciones_privadas %}
+                <div class="conversaciones-lista">
+                    {% for conv in conversaciones_privadas %}
+                        <a href="{% url 'chat' conv.id_conversacion %}" class="conversacion-card">
+                            <div class="conversacion-nombre">
+                                {% if conv.id_usuario_1.username == usuario.username %}
+                                    {{ conv.id_usuario_2.username }}
+                                {% else %}
+                                    {{ conv.id_usuario_1.username }}
+                                {% endif %}
+                            </div>
+                            <span class="conversacion-tipo tipo-privado">Privado</span>
+                            <div class="conversacion-usuario">
+                                📊 {{ conv.mensajes.count }} mensajes
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="vacio">No hay conversaciones privadas aún</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

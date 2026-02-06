@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .header a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+        
+        .header a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .chat-header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chat-header h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .chat-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .mensaje {
+            padding: 14px 16px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            max-width: 70%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mensaje-propio {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            align-self: flex-end;
+        }
+        
+        .mensaje-otro {
+            background: white;
+            color: #333;
+            align-self: flex-start;
+        }
+        
+        .mensaje-usuario {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+        
+        .mensaje-texto {
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        
+        .mensaje-hora {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .chat-input {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        textarea {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 50px;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .vacio {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 Chat Seguro</h1>
+        <a href="{% url 'conversaciones' %}">← Conversaciones</a>
+    </div>
+    
+    <div class="container">
+        <div class="chat-header">
+            <h2>
+                {% if conversacion.tipo == 'publico' %}
+                    🌍 {{ conversacion.nombre }}
+                {% else %}
+                    🔒 Conversación Privada
+                {% endif %}
+            </h2>
+            <p>Mensajes cifrados y seguros</p>
+        </div>
+        
+        <div class="chat-box" id="chatBox">
+            {% if mensajes %}
+                {% for msg in mensajes %}
+                    <div class="mensaje {% if msg.es_tuyo %}mensaje-propio{% else %}mensaje-otro{% endif %}">
+                        <div class="mensaje-usuario">{{ msg.usuario }}</div>
+                        <div class="mensaje-texto">{{ msg.contenido }}</div>
+                        <div class="mensaje-hora">{{ msg.fecha|date:"H:i" }}</div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="vacio">
+                    No hay mensajes aún. ¡Sé el primero en escribir! 💌
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="chat-input">
+            <form method="POST" class="input-form">
+                {% csrf_token %}
+                <textarea name="mensaje" placeholder="Escribe tu mensaje..." required></textarea>
+                <button type="submit">Enviar</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-scroll al final
+        window.addEventListener('load', function() {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+        
+        // Recargar automáticamente cada 2 segundos (opcional)
+        // setInterval(function() {
+        //     location.reload();
+        // }, 2000);
+    </script>
+</body>
+</html>
